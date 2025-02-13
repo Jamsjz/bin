@@ -20,30 +20,6 @@ if [ "$TMUX_RUNNING" -eq 0 ]; then
   fi
 fi
 
-# Check for Nix shell configuration
-check_nix_shell() {
-  local dir="$1"
-  if [ -f "$dir/shell.nix" ] || [ -f "$dir/default.nix" ]; then
-    return 0
-  fi
-  return 1
-}
-
-# Create new tmux window with Nix shell if available
-create_nix_shell_window() {
-  local session="$1"
-  local dir="$2"
-  local window_name="$3"
-
-  if check_nix_shell "$dir"; then
-    if [ -f "$dir/shell.nix" ]; then
-      tmux new-window -t "$session" -n "$window_name" -c "$dir" "nix-shell shell.nix --run zsh"
-    fi
-  else
-    tmux new-window -t "$session" -n "$window_name" -c "$dir" "zsh"
-  fi
-}
-
 # display help text with an argument
 if [ "$1" = "-h" ] || [ "$1" == "--help" ]; then
   printf "\n"
@@ -195,7 +171,6 @@ else # argument not provided
     if [[ -z $FZF_TMUX_OPTS ]]; then
       FZF_TMUX_OPTS="-p 53%,58%"
     fi
-
     RESULT=$(
       (get_fzf_results) | fzf-tmux \
         --bind "$FIND_BIND" \
@@ -281,10 +256,10 @@ if [ "$T_RUNTYPE" != "serverless" ]; then
   SESSION=$(tmux list-sessions -F '#S' | grep "^$SESSION_NAME$") # find existing session
 fi
 
-# Create new session with Nix shell if available
+# Create new session with conda shell if available
 if [ -z "$SESSION" ]; then
-  SESSION="${SESSION_NAME:-default_session}"
-  tmux new-session -d -s "$SESSION" -c "$RESULT" "nvim"
+  SESSION="$SESSION_NAME"                                             # Ensure $SESSION is assigned a value
+  tmux new-session -d -s "$SESSION" -c "$RESULT" "conda-shell -c zsh" # Create the session with zsh
 fi
 
 # Attach to the session based on T_RUNTYPE
